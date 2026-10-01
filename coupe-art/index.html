@@ -86,6 +86,8 @@ footer{padding:40px 0 90px;color:var(--mute);font-size:14px;border-top:1px solid
 footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
 .rv{opacity:0;transform:translateY(28px)}
 @media (prefers-reduced-motion:reduce){.rv{opacity:1;transform:none}}
+.now{display:flex;width:max-content;max-width:100%;align-items:center;gap:9px;margin-top:16px;font:600 14px var(--body);color:var(--char);background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:6px 14px 6px 11px}
+.now i{width:9px;height:9px;border-radius:50%;background:#9b9890;flex:none}.now.on i{background:#1f9d5b;box-shadow:0 0 0 4px rgba(31,157,91,.18)}
 </style>
 </head>
 <body>
@@ -99,6 +101,7 @@ footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
 <header class="hero" id="top"><div class="wrap">
   <div>
     <span class="kick">Paris 12e · 22 rue des Colonnes du Trône</span>
+    <span class="now" id="now"><i></i><span id="nowTxt">Horaires du salon</span></span>
     <h1 id="h1">Le coupeur, <em>pas</em> le coiffeur.</h1>
     <p class="lede rv">Une coupe pensée selon la nature de vos cheveux, leur implantation et la forme de votre visage. Pour une coiffure qui tient toute seule, chaque matin.</p>
     <div class="ctas rv"><a class="btn c" href="#rdv">Prendre rendez-vous</a><a class="btn o" href="#prestations">Les prestations</a></div>
@@ -143,7 +146,7 @@ footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
   <div class="rv">
     <h2 class="h2">Venir au salon</h2>
     <p class="addr">22 rue des Colonnes du Trône<br>75012 Paris</p>
-    <div class="ctas"><a class="btn c" href="http://www.coupe-art-loic-chevert.fr/" target="_blank" rel="noopener">Réserver en ligne</a><a class="btn o" href="tel:+33143076604">01 43 07 66 04</a></div>
+    <div class="ctas"><a class="btn c" href="https://www.rdv360.com/coupe-art-loic-chevert-75012-paris" target="_blank" rel="noopener">Réserver en ligne</a><a class="btn o" href="tel:+33143076604">01 43 07 66 04</a></div>
     <div class="street"><img src="img/p3.webp" alt="Rue parisienne" width="960" height="1039" loading="lazy"></div>
   </div>
   <div class="hours rv" id="hours" aria-label="Horaires"></div>
@@ -159,6 +162,17 @@ const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const H = [["Lundi","Fermé"],["Mardi","10h - 19h"],["Mercredi","10h - 19h"],["Jeudi","11h - 20h30"],["Vendredi","10h - 19h"],["Samedi","9h30 - 19h"],["Dimanche","Fermé"]];
 const today = new Intl.DateTimeFormat("fr-FR",{ timeZone:"Europe/Paris", weekday:"long" }).format(new Date());
 document.getElementById("hours").innerHTML = "<h3 style='font:500 26px var(--display);margin-bottom:8px'>Horaires</h3>" + H.map(([d,h]) => `<div class="${d.toLowerCase()===today?"today":""}"><span>${d}${d.toLowerCase()===today?" (aujourd'hui)":""}</span><span>${h}</span></div>`).join("");
+// "Ouvert maintenant" en heure de Paris
+const SL = {mardi:[600,1140],mercredi:[600,1140],jeudi:[660,1230],vendredi:[600,1140],samedi:[570,1140]};
+const ORD = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"];
+const fh = m => `${Math.floor(m/60)}h${m%60?String(m%60).padStart(2,"0"):""}`;
+function nowParis(){ const p = new Intl.DateTimeFormat("fr-FR",{timeZone:"Europe/Paris",weekday:"long",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date()); const g = t => p.find(x=>x.type===t).value; return { d:g("weekday"), m:(+g("hour")%24)*60 + (+g("minute")) }; }
+function updNow(){ const n = nowParis(), s = SL[n.d], el = document.getElementById("now"), t = document.getElementById("nowTxt");
+  if (s && n.m >= s[0] && n.m < s[1]) { el.classList.add("on"); t.textContent = `Ouvert maintenant · jusqu'à ${fh(s[1])}`; return; }
+  el.classList.remove("on");
+  if (s && n.m < s[0]) { t.textContent = `Fermé · ouvre aujourd'hui à ${fh(s[0])}`; return; }
+  for (let k=1;k<=7;k++){ const d = ORD[(ORD.indexOf(n.d)+k)%7]; if (SL[d]) { t.textContent = `Fermé · ouvre ${k===1?"demain":d} à ${fh(SL[d][0])}`; return; } } }
+updNow(); setInterval(updNow, 60000);
 // split h1 into words for the reveal
 const h1 = document.getElementById("h1");
 h1.innerHTML = h1.innerHTML.replace(/(<em>.*?<\/em>|[^\s<]+)/g, m => `<span class="w"><span>${m}</span></span>`);
